@@ -64,7 +64,7 @@ when it fails to open the printer.
 
 ### Known bugs and limitations
 
-* This patch's implementation will throw an exception once there are more than 468 open printer handles
+* This patch's implementation will throw an exception once there are more than 1024 open printer handles
   at once (this shouldn't ever happen in practice, unless there is a bug somewhere else).
 
 ### Debugging
