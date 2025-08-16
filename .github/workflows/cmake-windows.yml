@@ -90,4 +90,4 @@ jobs:
         body: |
           Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive.
         files: |
-          build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip
+          build/${{env.BUILD_TYPE}}/Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip
