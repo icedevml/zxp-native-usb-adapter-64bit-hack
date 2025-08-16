@@ -82,9 +82,18 @@ NtFreeVirtualMemory (
 #define ALLOC_CHUNKS_NUM             (1024)
 #define ALLOC_CHUNK_SIZE             (280)
 
-#define MEM_REGION_VA_UPPER_BOUND     (0x80000000ULL)
 #define MEM_REGION_SIZE               (ALLOC_CHUNKS_NUM * ALLOC_CHUNK_SIZE)
-#define MEM_REGION_SEARCH_HIGH_BOUND  (0xFE000000ULL)
+
+/**
+ * Important node: the allocated pointer (+ MEM_REGION_SIZE) must fit in lower 31 bits.
+ * The 32-th bit can not be set as well, because there is a problem with signedness.
+ */
+
+// For stage 1 algorithm
+#define MEM_REGION_VA_UPPER_BOUND     (0x40000000ULL - 1)
+
+// For stage 2 algorithm
+#define MEM_REGION_SEARCH_HIGH_BOUND  (0x7F000000ULL)
 #define MEM_REGION_SEARCH_LOW_BOUND   (0x01000000ULL)
 #define MEM_REGION_SEARCH_STEP        (0x01000000ULL)
 
@@ -188,6 +197,18 @@ void __fastcall patch_operator_delete(void *ptr) {
     fail(STATUS_BAD_FREE);
 }
 
+VOID free_stage1_nt_allocate_zero_bits(VOID) {
+    if (mem_region != NULL) {
+        PVOID base_address = mem_region;
+        SIZE_T freed_region_size = 0;
+        NtFreeVirtualMemory(
+            GetCurrentProcess(),
+            &base_address,
+            &freed_region_size,
+            MEM_RELEASE);
+    }
+}
+
 BOOL alloc_stage1_nt_allocate_zero_bits(VOID) {
     dbg_print("[MQALLOC] Trying to allocate low-address region with NtAllocateVirtualMemory and ZeroBits mask.\n");
 
@@ -196,7 +217,7 @@ BOOL alloc_stage1_nt_allocate_zero_bits(VOID) {
     NTSTATUS status = NtAllocateVirtualMemory(
         GetCurrentProcess(),
         &alloc_ptr,
-        MEM_REGION_VA_UPPER_BOUND - 1,
+        MEM_REGION_VA_UPPER_BOUND,
         &region_size,
         MEM_TOP_DOWN | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
@@ -207,6 +228,7 @@ BOOL alloc_stage1_nt_allocate_zero_bits(VOID) {
 
     if (alloc_ptr >= (PVOID) MEM_REGION_VA_UPPER_BOUND) {
         dbg_print("[MQALLOC] BUG! Allocated region is not low-address: %llx\n", (unsigned long long) alloc_ptr);
+        free_stage1_nt_allocate_zero_bits();
         return FALSE;
     }
 
@@ -215,15 +237,9 @@ BOOL alloc_stage1_nt_allocate_zero_bits(VOID) {
     return TRUE;
 }
 
-VOID free_stage1_nt_allocate_zero_bits(VOID) {
+VOID free_stage2_loop_virtualalloc(VOID) {
     if (mem_region != NULL) {
-        PVOID base_address = mem_region;
-        SIZE_T freed_region_size = 0;
-        NtFreeVirtualMemory(
-            GetCurrentProcess(),
-            &base_address,
-            &freed_region_size,
-            MEM_RELEASE);
+        VirtualFree(mem_region, MEM_REGION_SIZE, MEM_RELEASE);
     }
 }
 
@@ -247,12 +263,6 @@ BOOL alloc_stage2_loop_virtualalloc(VOID) {
     return FALSE;
 }
 
-VOID free_stage2_loop_virtualalloc(VOID) {
-    if (mem_region != NULL) {
-        VirtualFree(mem_region, MEM_REGION_SIZE, MEM_RELEASE);
-    }
-}
-
 BOOL alloc_low_address_region(VOID) {
     if (alloc_stage1_nt_allocate_zero_bits()) {
         return TRUE;
@@ -267,7 +277,7 @@ BOOL alloc_low_address_region(VOID) {
 }
 
 VOID free_low_address_region(VOID) {
-    dbg_print("[MQALLOC] Freeing low-address region created by stage %d algorithm.\n", alloc_stage);
+    dbg_print("[MQALLOC] Freeing low-address region created by stage %d algorithm: %llx\n", alloc_stage, (unsigned long long) mem_region);
 
     if (mem_region == NULL || alloc_stage == 0) {
         dbg_print("[MQALLOC] Nothing to free up, the memory region was not allocated yet.\n");
