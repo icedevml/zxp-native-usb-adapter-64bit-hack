@@ -34,10 +34,10 @@ jobs:
         echo "aba8fea3ca4dc86d0ee7640238151d5e00456f1a6c55cc357fda3f51cab58b97 *ZebraNativeUsbAdapter_64.dll" | sha256sum -c
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build
+      run: cmake -B "${{github.workspace}}/build"
 
     - name: Build MQALLOC.dll
-      run: cmake --build ${{github.workspace}}/build --target MQALLOC --config ${{env.BUILD_TYPE}}
+      run: cmake --build "${{github.workspace}}/build" --target MQALLOC --config "${{env.BUILD_TYPE}}"
 
     - name: Generate artifact attestation
       uses: actions/attest-build-provenance@v2
@@ -53,13 +53,13 @@ jobs:
     - name: Create INSTALL.txt
       shell: bash
       run: |
-        echo "Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive." > "build/${{env.BUILD_TYPE}}/INSTALL.txt"
+        echo 'Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive.' > "build/${{env.BUILD_TYPE}}/INSTALL.txt"
 
     - name: Package ZIP release
       run: |
         mv ZebraNativeUsbAdapter_64.dll build\${{env.BUILD_TYPE}}\ZebraNativeUsbAdapter_64.dll
         cd build\${{env.BUILD_TYPE}}
-        Compress-Archive -Path INSTALL.txt,MQALLOC.dll,ZebraNativeUsbAdapter_64.dll -DestinationPath Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip
+        Compress-Archive -Path INSTALL.txt,MQALLOC.dll,ZebraNativeUsbAdapter_64.dll -DestinationPath "Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip"
 
     - name: Generate artifact attestation
       uses: actions/attest-build-provenance@v2
