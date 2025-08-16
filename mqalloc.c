@@ -277,7 +277,7 @@ BOOL alloc_low_address_region(VOID) {
 }
 
 VOID free_low_address_region(VOID) {
-    dbg_print("[MQALLOC] Freeing low-address region created by stage %d algorithm: %llx\n", alloc_stage, (unsigned long long) mem_region);
+    dbg_print("[MQALLOC] Freeing low-address region created by stage %d algorithm: 0x%llx\n", alloc_stage, (unsigned long long) mem_region);
 
     if (mem_region == NULL || alloc_stage == 0) {
         dbg_print("[MQALLOC] Nothing to free up, the memory region was not allocated yet.\n");
@@ -334,6 +334,9 @@ BOOL WINAPI DllMain(
                 return FALSE;
             }
 
+            dbg_print("[MQALLOC] Allocated low-address region: 0x%llx\n",
+                (unsigned long long) mem_region);
+
             mutex = CreateMutex(NULL, FALSE, NULL);
 
             if (mutex == NULL) {
@@ -342,8 +345,7 @@ BOOL WINAPI DllMain(
                 return FALSE;
             }
 
-            dbg_print("[MQALLOC] Allocated low-address region: 0x%llx\n",
-                (unsigned long long) mem_region);
+            dbg_print("[MQALLOC] DLL initialization succeeded. Returning from DLL_PROCESS_ATTACH handler.\n");
             break;
 
         case DLL_THREAD_ATTACH:
@@ -353,8 +355,9 @@ BOOL WINAPI DllMain(
             break;
 
         case DLL_PROCESS_DETACH:
-            dbg_print("[MQALLOC] Detaching from the process\n");
+            dbg_print("[MQALLOC] Detaching from the process.\n");
             free_low_address_region();
+            dbg_print("[MQALLOC] Returning from DLL_PROCESS_DETACH handler.\n");
             break;
     }
 
