@@ -34,6 +34,7 @@ jobs:
         echo "aba8fea3ca4dc86d0ee7640238151d5e00456f1a6c55cc357fda3f51cab58b97 *ZebraNativeUsbAdapter_64.dll" | sha256sum -c
 
     - name: Set BUILD_ID to ${{github.ref_name}}
+      if: github.event == 'push'
       shell: bash
       run: |
         echo 'BUILD_ID: ${{github.ref_name}}'
