@@ -53,7 +53,7 @@ jobs:
     - name: Create INSTALL.txt
       shell: bash
       run: |
-        echo "Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive." > build\${{env.BUILD_TYPE}}\INSTALL.txt
+        echo "Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive." > "build/${{env.BUILD_TYPE}}/INSTALL.txt"
 
     - name: Package ZIP release
       run: |
