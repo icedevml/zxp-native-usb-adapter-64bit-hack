@@ -42,6 +42,34 @@
 #pragma comment(linker, "/export:?_type_info_dtor_internal_method@type_info@@QEAAXXZ=MSVCR90.?_type_info_dtor_internal_method@type_info@@QEAAXXZ")
 #pragma comment(linker, "/export:_CxxThrowException=MSVCR90._CxxThrowException")
 
+// from C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\km\ntifs.h
+
+//@[comment("MVI_tracked")]
+_Must_inspect_result_
+__drv_allocatesMem(Mem)
+__kernel_entry NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAllocateVirtualMemory (
+    _In_ HANDLE ProcessHandle,
+    _Inout_ _At_ (*BaseAddress, _Readable_bytes_ (*RegionSize) _Writable_bytes_ (*RegionSize) _Post_readable_byte_size_ (*RegionSize)) PVOID *BaseAddress,
+    _In_ ULONG_PTR ZeroBits,
+    _Inout_ PSIZE_T RegionSize,
+    _In_ ULONG AllocationType,
+    _In_ ULONG Protect
+    );
+
+//@[comment("MVI_tracked")]
+__kernel_entry NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFreeVirtualMemory (
+    _In_ HANDLE ProcessHandle,
+    _Inout_ __drv_freesMem(Mem) PVOID *BaseAddress,
+    _Inout_ PSIZE_T RegionSize,
+    _In_ ULONG FreeType
+    );
+
 #define STATUS_NO_MEM_REGION         (0xE000AC01)
 #define STATUS_TOO_BIG_ALLOC         (0xE000AC02)
 #define STATUS_OUT_OF_STATIC_POOL    (0xE000AC03)
@@ -172,6 +200,9 @@ BOOL WINAPI DllMain(
         DWORD fdwReason,
         LPVOID lpReserved )
 {
+    UNREFERENCED_PARAMETER(hinstDLL);
+    UNREFERENCED_PARAMETER(lpReserved);
+
     switch( fdwReason )
     {
         case DLL_PROCESS_ATTACH:
