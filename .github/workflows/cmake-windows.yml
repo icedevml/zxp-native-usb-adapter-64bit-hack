@@ -38,18 +38,19 @@ jobs:
       uses: actions/attest-build-provenance@v2
       if: github.event == 'push'
       with:
-        subject-path: 'build\Release\MQALLOC.dll'
+        subject-path: 'build\${{env.BUILD_TYPE}}\MQALLOC.dll'
 
     - name: Package ZIP release
       run: |
-        cd build\Release
+        mv ZebraNativeUsbAdapter_64.dll build\${{env.BUILD_TYPE}}\ZebraNativeUsbAdapter_64.dll
+        cd build\${{env.BUILD_TYPE}}
         Compress-Archive -Path MQALLOC.dll,ZebraNativeUsbAdapter_64.dll -DestinationPath Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip
 
     - name: Generate artifact attestation
       uses: actions/attest-build-provenance@v2
       if: github.event == 'push' # && github.ref_type == 'tag'
       with:
-        subject-path: 'build\Release\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip'
+        subject-path: 'build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip'
 
     - name: Create releases
       uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
@@ -60,4 +61,4 @@ jobs:
         body: |
           Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive.
         files: |
-          build\Release\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip
+          build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip
