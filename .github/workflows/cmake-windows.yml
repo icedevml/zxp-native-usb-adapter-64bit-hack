@@ -28,6 +28,11 @@ jobs:
         dos2unix ZebraNativeUsbAdapter_64.diff
         git apply < ZebraNativeUsbAdapter_64.diff
 
+    - name: Verify patched SHA-256 of ZebraNativeUsbAdapter_64
+      shell: bash
+      run: |
+        echo "aba8fea3ca4dc86d0ee7640238151d5e00456f1a6c55cc357fda3f51cab58b97 *ZebraNativeUsbAdapter_64.dll" | sha256sum -c
+
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build
 
@@ -40,6 +45,11 @@ jobs:
       with:
         subject-path: 'build\${{env.BUILD_TYPE}}\MQALLOC.dll'
 
+    - uses: actions/upload-artifact@v4
+      with:
+        name: mqalloc-dll
+        path: 'build\${{env.BUILD_TYPE}}\MQALLOC.dll'
+
     - name: Package ZIP release
       run: |
         mv ZebraNativeUsbAdapter_64.dll build\${{env.BUILD_TYPE}}\ZebraNativeUsbAdapter_64.dll
@@ -51,6 +61,11 @@ jobs:
       if: github.event == 'push' # && github.ref_type == 'tag'
       with:
         subject-path: 'build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip'
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: patch-archive-zip
+        path: 'build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip'
 
     - name: Create releases
       uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
