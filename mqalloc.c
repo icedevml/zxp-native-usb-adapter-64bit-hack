@@ -93,7 +93,7 @@ NtFreeVirtualMemory (
 #define MEM_REGION_VA_UPPER_BOUND     (0x40000000ULL - 1)
 
 // For stage 2 algorithm
-#define MEM_REGION_SEARCH_HIGH_BOUND  (0x7F000000ULL)
+#define MEM_REGION_SEARCH_HIGH_BOUND  (0x7E000000ULL)
 #define MEM_REGION_SEARCH_LOW_BOUND   (0x01000000ULL)
 #define MEM_REGION_SEARCH_STEP        (0x01000000ULL)
 
@@ -227,7 +227,7 @@ BOOL alloc_stage1_nt_allocate_zero_bits(VOID) {
     }
 
     if (alloc_ptr >= (PVOID) MEM_REGION_VA_UPPER_BOUND) {
-        dbg_print("[MQALLOC] BUG! Allocated region is not low-address: %llx\n", (unsigned long long) alloc_ptr);
+        dbg_print("[MQALLOC] BUG! Allocated region is not low-address: 0x%llx\n", (unsigned long long) alloc_ptr);
         free_stage1_nt_allocate_zero_bits();
         return FALSE;
     }
