@@ -1,0 +1,87 @@
+name: CMake Build MQALLOC
+
+on: [push, pull_request]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: windows-2025
+
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate SHA-256 of ZebraNativeUsbAdapter_64
+      shell: bash
+      run: |
+        echo "034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e *ZebraNativeUsbAdapter_64.dll" | sha256sum -c
+
+    - name: Apply binary patch to ZebraNativeUsbAdapter_64
+      shell: bash
+      run: |
+        dos2unix ZebraNativeUsbAdapter_64.diff
+        git apply < ZebraNativeUsbAdapter_64.diff
+
+    - name: Verify patched SHA-256 of ZebraNativeUsbAdapter_64
+      shell: bash
+      run: |
+        echo "aba8fea3ca4dc86d0ee7640238151d5e00456f1a6c55cc357fda3f51cab58b97 *ZebraNativeUsbAdapter_64.dll" | sha256sum -c
+
+    - name: Configure CMake
+      run: cmake -B "${{github.workspace}}/build"
+
+    - name: Build MQALLOC.dll
+      run: cmake --build "${{github.workspace}}/build" --target MQALLOC --config "${{env.BUILD_TYPE}}"
+
+    - name: Generate artifact attestation
+      uses: actions/attest-build-provenance@v2
+      if: github.event == 'push'
+      with:
+        subject-path: 'build\${{env.BUILD_TYPE}}\MQALLOC.dll'
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: mqalloc-dll
+        path: 'build\${{env.BUILD_TYPE}}\MQALLOC.dll'
+
+    - name: Create INSTALL.txt
+      if: github.event == 'push' && github.ref_type == 'tag'
+      shell: bash
+      run: |
+        echo 'Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive.' > "build/${{env.BUILD_TYPE}}/INSTALL.txt"
+
+    - name: Package ZIP release
+      if: github.event == 'push' && github.ref_type == 'tag'
+      run: |
+        mv ZebraNativeUsbAdapter_64.dll build\${{env.BUILD_TYPE}}\ZebraNativeUsbAdapter_64.dll
+        cd build\${{env.BUILD_TYPE}}
+        Compress-Archive -Path "INSTALL.txt,MQALLOC.dll,ZebraNativeUsbAdapter_64.dll" -DestinationPath "Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip"
+
+    - name: Generate artifact attestation
+      uses: actions/attest-build-provenance@v2
+      if: github.event == 'push' && github.ref_type == 'tag'
+      with:
+        subject-path: 'build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip'
+
+    - uses: actions/upload-artifact@v4
+      if: github.event == 'push' && github.ref_type == 'tag'
+      with:
+        name: patch-archive-zip
+        path: 'build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip'
+
+    - name: Create releases
+      uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+      if: github.event == 'push' && github.ref_type == 'tag'
+      with:
+        name: "Patch for ZebraNativeUsbAdapter_64.dll (version: ${{github.ref_name}})"
+        draft: true
+        body: |
+          Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive.
+        files: |
+          build\${{env.BUILD_TYPE}}\Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip
