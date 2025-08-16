@@ -1,4 +1,9 @@
 # Patch for ZebraNativeUsbAdapter_64.dll (memory allocator workaround)
+
+> [!NOTE]
+> All the information contained within this repository is provided solely to help resolve compatibility issues with the original product.
+> Zebra and ZXP are trademarks of Zebra Technologies Corporation. Authors of this repository are not affiliated with the original manufacturer or product.
+
 ## Crash
 
 Zebra Link-OS Multiplatform SDK for Desktop Java - Card (Build: 2.12.3782 / 2.14.5198)
@@ -86,7 +91,3 @@ Only if you want to build this patch from scratch:
    ```
 3. Build the source code from this repository with CMake (using MSVC, in "Release" profile), this would generate `MQALLOC.dll`.
 4. Put the patched `ZebraNativeUsbAdapter_64.dll` that you've got from step (2) together with `MQALLOC.dll` instead of the original DLL. Both files should be placed in the same directory.
-
-## Disclaimer
-
-Information and binary releases are provided here only to increase the compatibility.
