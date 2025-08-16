@@ -53,11 +53,11 @@
 #define ALLOC_CHUNKS_NUM             (1024)
 #define ALLOC_CHUNK_SIZE             (280)
 
-#define MEM_REGION_VA_UPPER_BOUND    (0x80000000UL)
+#define MEM_REGION_VA_UPPER_BOUND    (0x80000000ULL)
 #define MEM_REGION_SIZE              (ALLOC_CHUNKS_NUM * ALLOC_CHUNK_SIZE)
 
 uint8_t enable_debug = FALSE;
-void *mem_region = NULL;
+PVOID mem_region = NULL;
 volatile uint8_t alloc_table[ALLOC_CHUNKS_NUM];
 HANDLE mutex = NULL;
 
@@ -216,7 +216,7 @@ BOOL WINAPI DllMain(
                 return FALSE;
             }
 
-            if (mem_region >= (void *) MEM_REGION_VA_UPPER_BOUND) {
+            if (mem_region >= (PVOID) MEM_REGION_VA_UPPER_BOUND) {
                 fprintf(stderr, "[MQALLOC] BUG! Allocated region is not low-address: %llx\n", (unsigned long long) mem_region);
                 fflush(stderr);
                 fail(STATUS_INIT_FAILED);
