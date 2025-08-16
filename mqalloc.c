@@ -77,6 +77,7 @@ NtFreeVirtualMemory (
 #define STATUS_BAD_FREE              (0xE000AC05UL)
 #define STATUS_INIT_FAILED           (0xE000AC06UL)
 #define STATUS_MUTEX_OBTAIN          (0xE000AC07UL)
+#define STATUS_NO_DEALLOC_ALG        (0xE000AC08UL)
 
 #define ALLOC_CHUNKS_NUM             (1024)
 #define ALLOC_CHUNK_SIZE             (280)
@@ -268,12 +269,17 @@ BOOL alloc_low_address_region(VOID) {
 VOID free_low_address_region(VOID) {
     dbg_print("[MQALLOC] Freeing low-address region created by stage %d algorithm.\n", alloc_stage);
 
+    if (mem_region == NULL || alloc_stage == 0) {
+        dbg_print("[MQALLOC] Nothing to free up, the memory region was not allocated yet.\n");
+    }
+
     if (alloc_stage == 1) {
         free_stage1_nt_allocate_zero_bits();
     } else if (alloc_stage == 2) {
         free_stage2_loop_virtualalloc();
     } else {
-        dbg_print("[MQALLOC] Nothing to free up.\n");
+        err_print("[MQALLOC] BUG! Memory deallocation algorithm not implemented for that alloc_stage.");
+        fail(STATUS_NO_DEALLOC_ALG);
     }
 }
 
