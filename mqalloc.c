@@ -223,8 +223,6 @@ BOOL WINAPI DllMain(
                 return FALSE;
             }
 
-            // TODO allow alternative memory allocation with quick brute force
-
             mutex = CreateMutex(NULL, FALSE, NULL);
 
             if (mutex == NULL) {
