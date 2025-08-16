@@ -34,12 +34,15 @@ under 64 bit Java.
 ## Patch
 
 **Applying a patch:**
-1. **Download release: [Patch_ZebraNativeUsbAdapter_64_20231120R02.zip](https://github.com/7c5eea120b/zxp-native-usb-adapter-64bit-hack/releases/download/build-20231120R02/Patch_ZebraNativeUsbAdapter_64_20231120R02.zip)**
+1. **Download [latest patch release](https://github.com/icedevml/zxp-native-usb-adapter-64bit-hack/releases)**
 2. **Replace your original `ZebraNativeUsbAdapter_64.dll` with the two DLL files that are contained in the archive.**
 
-That's it, now it should work under the recent versions of 64 bit Java JRE/JDK.
+That's it, now it should work under the recent versions of 64-bit Java JRE/JDK.
 
 Kindly please star the project on GitHub to indicate that this patch works correctly, or please file an issue otherwise.
+
+Release builds are built automatically by GitHub Actions Runner (hosted by GitHub).
+Build provenance is available in [Actions / Attestation](https://github.com/icedevml/zxp-native-usb-adapter-64bit-hack/attestations).
 
 ---
 
