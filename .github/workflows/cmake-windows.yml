@@ -18,8 +18,9 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Validate SHA-256 of ZebraNativeUsbAdapter_64
+      shell: bash
       run: |
-        Write-Host "034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e *ZebraNativeUsbAdapter_64.dll" -nonewline | sha256sum -c
+        echo "034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e *ZebraNativeUsbAdapter_64.dll" | sha256sum -c
 
     - name: Apply binary patch to ZebraNativeUsbAdapter_64
       run: |
