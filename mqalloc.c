@@ -42,21 +42,19 @@
 #pragma comment(linker, "/export:?_type_info_dtor_internal_method@type_info@@QEAAXXZ=MSVCR90.?_type_info_dtor_internal_method@type_info@@QEAAXXZ")
 #pragma comment(linker, "/export:_CxxThrowException=MSVCR90._CxxThrowException")
 
-#define STATUS_NO_MEM_REGION         0xE000AC01
-#define STATUS_TOO_BIG_ALLOC         0xE000AC02
-#define STATUS_OUT_OF_STATIC_POOL    0xE000AC03
-#define STATUS_DOUBLE_FREE           0xE000AC04
-#define STATUS_BAD_FREE              0xE000AC05
-#define STATUS_INIT_FAILED           0xE000AC06
-#define STATUS_MUTEX_OBTAIN          0xE000AC07
+#define STATUS_NO_MEM_REGION         (0xE000AC01)
+#define STATUS_TOO_BIG_ALLOC         (0xE000AC02)
+#define STATUS_OUT_OF_STATIC_POOL    (0xE000AC03)
+#define STATUS_DOUBLE_FREE           (0xE000AC04)
+#define STATUS_BAD_FREE              (0xE000AC05)
+#define STATUS_INIT_FAILED           (0xE000AC06)
+#define STATUS_MUTEX_OBTAIN          (0xE000AC07)
 
-#define ALLOC_CHUNKS_NUM  (468)
-#define ALLOC_CHUNK_SIZE  (280)
+#define ALLOC_CHUNKS_NUM             (1024)
+#define ALLOC_CHUNK_SIZE             (280)
 
-#define MEM_REGION_SIZE               (ALLOC_CHUNKS_NUM * ALLOC_CHUNK_SIZE)
-#define MEM_REGION_SEARCH_START_ADDR  (0x05000000)
-#define MEM_REGION_SEARCH_END_ADDR    (0x08000000)
-#define MEM_REGION_SEARCH_STEP        (  0x100000)
+#define MEM_REGION_VA_UPPER_BOUND    (0x80000000UL)
+#define MEM_REGION_SIZE              (ALLOC_CHUNKS_NUM * ALLOC_CHUNK_SIZE)
 
 uint8_t enable_debug = FALSE;
 void *mem_region = NULL;
@@ -189,7 +187,7 @@ BOOL WINAPI DllMain(
                 fprintf(stderr,
                         "[MQALLOC] Loading ZebraNativeUsbAdapter_64.dll allocator compatibility hack by MQ\n");
                 fprintf(stderr,
-                        "[MQALLOC] Build: 20231120R02\n");
+                        "[MQALLOC] Build: 20250816R02\n");
                 fprintf(stderr, ""
                        "                       __________.__        __   __                __ ________  \n"
                        "   /\\_/\\               \\____    /|__|__ ___/  |_|  | _______      / / \\_____  \\ \n"
@@ -203,23 +201,29 @@ BOOL WINAPI DllMain(
                 alloc_table[i] = FALSE;
             }
 
-            for (uint64_t cptr = MEM_REGION_SEARCH_START_ADDR;
-                    cptr < MEM_REGION_SEARCH_END_ADDR;
-                    cptr += MEM_REGION_SEARCH_STEP) {
-                mem_region = VirtualAlloc((void *) cptr, MEM_REGION_SIZE,
-                                          MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            SIZE_T region_size = MEM_REGION_SIZE;
+            NTSTATUS status = NtAllocateVirtualMemory(
+                GetCurrentProcess(),
+                &mem_region,
+                MEM_REGION_VA_UPPER_BOUND - 1,
+                &region_size,
+                MEM_TOP_DOWN | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-                if (mem_region != NULL) {
-                    break;
-                }
-            }
-
-            if (mem_region == NULL) {
-                fprintf(stderr, "[MQALLOC] BUG! Failed to allocate low-address region.\n");
+            if (status) {
+                fprintf(stderr, "[MQALLOC] BUG! Failed to allocate low-address region. NTSTATUS=0x%lx.\n", status);
                 fflush(stderr);
                 fail(STATUS_INIT_FAILED);
                 return FALSE;
             }
+
+            if (mem_region >= (void *) MEM_REGION_VA_UPPER_BOUND) {
+                fprintf(stderr, "[MQALLOC] BUG! Allocated region is not low-address: %llx\n", (unsigned long long) mem_region);
+                fflush(stderr);
+                fail(STATUS_INIT_FAILED);
+                return FALSE;
+            }
+
+            // TODO allow alternative memory allocation with quick brute force
 
             mutex = CreateMutex(NULL, FALSE, NULL);
 
@@ -249,7 +253,15 @@ BOOL WINAPI DllMain(
                 fflush(stderr);
             }
 
-            VirtualFree(mem_region, MEM_REGION_SIZE, MEM_RELEASE);
+            if (mem_region != NULL) {
+                PVOID base_address = mem_region;
+                SIZE_T freed_region_size = 0;
+                NtFreeVirtualMemory(
+                    GetCurrentProcess(),
+                    &base_address,
+                    &freed_region_size,
+                    MEM_RELEASE);
+            }
             break;
     }
 
