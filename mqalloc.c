@@ -70,21 +70,28 @@ NtFreeVirtualMemory (
     _In_ ULONG FreeType
     );
 
-#define STATUS_NO_MEM_REGION         (0xE000AC01)
-#define STATUS_TOO_BIG_ALLOC         (0xE000AC02)
-#define STATUS_OUT_OF_STATIC_POOL    (0xE000AC03)
-#define STATUS_DOUBLE_FREE           (0xE000AC04)
-#define STATUS_BAD_FREE              (0xE000AC05)
-#define STATUS_INIT_FAILED           (0xE000AC06)
-#define STATUS_MUTEX_OBTAIN          (0xE000AC07)
+#define STATUS_NO_MEM_REGION         (0xE000AC01UL)
+#define STATUS_TOO_BIG_ALLOC         (0xE000AC02UL)
+#define STATUS_OUT_OF_STATIC_POOL    (0xE000AC03UL)
+#define STATUS_DOUBLE_FREE           (0xE000AC04UL)
+#define STATUS_BAD_FREE              (0xE000AC05UL)
+#define STATUS_INIT_FAILED           (0xE000AC06UL)
+#define STATUS_MUTEX_OBTAIN          (0xE000AC07UL)
 
 #define ALLOC_CHUNKS_NUM             (1024)
 #define ALLOC_CHUNK_SIZE             (280)
 
-#define MEM_REGION_VA_UPPER_BOUND    (0x80000000ULL)
-#define MEM_REGION_SIZE              (ALLOC_CHUNKS_NUM * ALLOC_CHUNK_SIZE)
+#define MEM_REGION_VA_UPPER_BOUND     (0x80000000ULL)
+#define MEM_REGION_SIZE               (ALLOC_CHUNKS_NUM * ALLOC_CHUNK_SIZE)
+#define MEM_REGION_SEARCH_HIGH_BOUND  (0xFE000000ULL)
+#define MEM_REGION_SEARCH_LOW_BOUND   (0x01000000ULL)
+#define MEM_REGION_SEARCH_STEP        (0x01000000ULL)
+
+#define err_print(...) do { fprintf(stderr, __VA_ARGS__); fflush(stderr); } while (0)
+#define dbg_print(...) if (enable_debug) { fprintf(stderr, __VA_ARGS__); fflush(stderr); }
 
 uint8_t enable_debug = FALSE;
+uint8_t alloc_stage = 0;
 PVOID mem_region = NULL;
 volatile uint8_t alloc_table[ALLOC_CHUNKS_NUM];
 HANDLE mutex = NULL;
@@ -102,23 +109,20 @@ void *__fastcall patch_operator_new(unsigned __int64 size) {
     DWORD dwWaitResult = WaitForSingleObject(mutex, INFINITE);
 
     if (dwWaitResult != WAIT_OBJECT_0) {
-        fprintf(stderr, "[MQALLOC] BUG! Failed to obtain mutex in patch_operator_new.\n");
-        fflush(stderr);
+        err_print("[MQALLOC] BUG! Failed to obtain mutex in patch_operator_new.\n");
         fail(STATUS_MUTEX_OBTAIN);
         return NULL;
     }
 
     if (mem_region == NULL) {
-        fprintf(stderr, "[MQALLOC] BUG! Allocation failed, mem_region is not initialized.\n");
-        fflush(stderr);
+        err_print("[MQALLOC] BUG! Allocation failed, mem_region is not initialized.\n");
         fail(STATUS_NO_MEM_REGION);
         return NULL;
     }
 
     if (size > ALLOC_CHUNK_SIZE) {
-        fprintf(stderr, "[MQALLOC] BUG! Allocation of %lld bytes failed, we only support "
-               "allocating up to %lld bytes at once.\n", size, (unsigned long long) ALLOC_CHUNK_SIZE);
-        fflush(stderr);
+        err_print("[MQALLOC] BUG! Allocation of %lld bytes failed, we only support "
+                  "allocating up to %lld bytes at once.\n", size, (unsigned long long) ALLOC_CHUNK_SIZE);
         fail(STATUS_TOO_BIG_ALLOC);
         return NULL;
     }
@@ -130,20 +134,15 @@ void *__fastcall patch_operator_new(unsigned __int64 size) {
 
             void* out = (void *) ((uint64_t) mem_region + off);
 
-            if (enable_debug) {
-                fprintf(stderr, "[MQALLOC] patch_operator_new(%lld) "
-                       "=> allocated 0x%llx\n", size, (unsigned long long) out);
-                fflush(stderr);
-            }
+            dbg_print("[MQALLOC] patch_operator_new(%lld) => allocated 0x%llx\n", size, (unsigned long long) out);
 
             ReleaseMutex(mutex);
             return out;
         }
     }
 
-    fprintf(stderr, "[MQALLOC] BUG! Unable to allocate memory out of static pool. "
+    err_print("[MQALLOC] BUG! Unable to allocate memory out of static pool. "
            "More than %d open printers?\n", ALLOC_CHUNKS_NUM);
-    fflush(stderr);
     fail(STATUS_OUT_OF_STATIC_POOL);
     return NULL;
 }
@@ -153,32 +152,26 @@ void __fastcall patch_operator_delete(void *ptr) {
     DWORD dwWaitResult = WaitForSingleObject(mutex, INFINITE);
 
     if (dwWaitResult != WAIT_OBJECT_0) {
-        fprintf(stderr, "[MQALLOC] BUG! Failed to obtain mutex in patch_operator_delete.\n");
-        fflush(stderr);
+        err_print("[MQALLOC] BUG! Failed to obtain mutex in patch_operator_delete.\n");
         fail(STATUS_MUTEX_OBTAIN);
         return;
     }
 
     if (mem_region == NULL) {
-        fprintf(stderr, "[MQALLOC] BUG! Deallocation failed, mem_region is not initialized.\n");
-        fflush(stderr);
+        err_print("[MQALLOC] BUG! Deallocation failed, mem_region is not initialized.\n");
         fail(STATUS_NO_MEM_REGION);
         return;
     }
 
-    if (enable_debug) {
-        fprintf(stderr, "[MQALLOC] patch_operator_delete(0x%llx)\n", (uint64_t) ptr);
-        fflush(stderr);
-    }
+    dbg_print("[MQALLOC] patch_operator_delete(0x%llx)\n", (uint64_t) ptr);
 
     for (int i = 0; i < ALLOC_CHUNKS_NUM; i++) {
         uint64_t off = i * ALLOC_CHUNK_SIZE;
 
         if (ptr == (void *)((uint64_t) mem_region + off)) {
             if (!alloc_table[i]) {
-                fprintf(stderr, "[MQALLOC] BUG! Freeing region that was not allocated: 0x%llx.\n",
+                err_print("[MQALLOC] BUG! Freeing region that was not allocated: 0x%llx.\n",
                        (unsigned long long) ptr);
-                fflush(stderr);
                 fail(STATUS_DOUBLE_FREE);
                 return;
             }
@@ -189,10 +182,99 @@ void __fastcall patch_operator_delete(void *ptr) {
         }
     }
 
-    fprintf(stderr, "[MQALLOC] BUG! Requested to delete unrecognized pointer: 0x%llx\n",
+    err_print("[MQALLOC] BUG! Requested to delete unrecognized pointer: 0x%llx\n",
             (unsigned long long) ptr);
-    fflush(stderr);
     fail(STATUS_BAD_FREE);
+}
+
+BOOL alloc_stage1_nt_allocate_zero_bits(VOID) {
+    dbg_print("[MQALLOC] Trying to allocate low-address region with NtAllocateVirtualMemory and ZeroBits mask.\n");
+
+    PVOID alloc_ptr = NULL;
+    SIZE_T region_size = MEM_REGION_SIZE;
+    NTSTATUS status = NtAllocateVirtualMemory(
+        GetCurrentProcess(),
+        &alloc_ptr,
+        MEM_REGION_VA_UPPER_BOUND - 1,
+        &region_size,
+        MEM_TOP_DOWN | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+    if (status) {
+        dbg_print("[MQALLOC] BUG! Failed to allocate low-address region. NTSTATUS=0x%lx.\n", status);
+        return FALSE;
+    }
+
+    if (alloc_ptr >= (PVOID) MEM_REGION_VA_UPPER_BOUND) {
+        dbg_print("[MQALLOC] BUG! Allocated region is not low-address: %llx\n", (unsigned long long) alloc_ptr);
+        return FALSE;
+    }
+
+    mem_region = alloc_ptr;
+    alloc_stage = 1;
+    return TRUE;
+}
+
+VOID free_stage1_nt_allocate_zero_bits(VOID) {
+    if (mem_region != NULL) {
+        PVOID base_address = mem_region;
+        SIZE_T freed_region_size = 0;
+        NtFreeVirtualMemory(
+            GetCurrentProcess(),
+            &base_address,
+            &freed_region_size,
+            MEM_RELEASE);
+    }
+}
+
+BOOL alloc_stage2_loop_virtualalloc(VOID) {
+    dbg_print("[MQALLOC] Trying to loop VirtualAlloc to find suitable address.\n");
+
+    for (uint64_t iaddr = MEM_REGION_SEARCH_HIGH_BOUND;
+            iaddr >= MEM_REGION_SEARCH_LOW_BOUND;
+            iaddr -= MEM_REGION_SEARCH_STEP) {
+        PVOID alloc_ptr = VirtualAlloc((PVOID) iaddr, MEM_REGION_SIZE,
+            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+        if (alloc_ptr != NULL) {
+            mem_region = alloc_ptr;
+            alloc_stage = 2;
+            return TRUE;
+        }
+    }
+
+    dbg_print("[MQALLOC] BUG! Failed to find suitable address using VirtualAlloc loop.\n");
+    return FALSE;
+}
+
+VOID free_stage2_loop_virtualalloc(VOID) {
+    if (mem_region != NULL) {
+        VirtualFree(mem_region, MEM_REGION_SIZE, MEM_RELEASE);
+    }
+}
+
+BOOL alloc_low_address_region(VOID) {
+    if (alloc_stage1_nt_allocate_zero_bits()) {
+        return TRUE;
+    }
+
+    if (alloc_stage2_loop_virtualalloc()) {
+        return TRUE;
+    }
+
+    dbg_print("[MQALLOC] Failure, none of implemented approaches succeeded allocating low-address region.\n");
+    return FALSE;
+}
+
+VOID free_low_address_region(VOID) {
+    dbg_print("[MQALLOC] Freeing low-address region created by stage %d algorithm.\n", alloc_stage);
+
+    if (alloc_stage == 1) {
+        free_stage1_nt_allocate_zero_bits();
+    } else if (alloc_stage == 2) {
+        free_stage2_loop_virtualalloc();
+    } else {
+        dbg_print("[MQALLOC] Nothing to free up.\n");
+    }
 }
 
 BOOL WINAPI DllMain(
@@ -215,11 +297,9 @@ BOOL WINAPI DllMain(
             }
 
             if (enable_debug) {
-                fprintf(stderr,
-                        "[MQALLOC] Loading ZebraNativeUsbAdapter_64.dll allocator compatibility hack by MQ\n");
-                fprintf(stderr,
-                        "[MQALLOC] Version: {{BUILD_ID}}\n");
-                fprintf(stderr, ""
+                err_print("[MQALLOC] Loading ZebraNativeUsbAdapter_64.dll allocator compatibility hack by MQ\n");
+                err_print("[MQALLOC] Version: {{BUILD_ID}}\n");
+                err_print(""
                        "                       __________.__        __   __                __ ________  \n"
                        "   /\\_/\\               \\____    /|__|__ ___/  |_|  | _______      / / \\_____  \\ \n"
                        "   >^.^<.---.            /     / |  |  |  \\   __\\  |/ /\\__  \\    / /    _(__  < \n"
@@ -232,24 +312,8 @@ BOOL WINAPI DllMain(
                 alloc_table[i] = FALSE;
             }
 
-            SIZE_T region_size = MEM_REGION_SIZE;
-            NTSTATUS status = NtAllocateVirtualMemory(
-                GetCurrentProcess(),
-                &mem_region,
-                MEM_REGION_VA_UPPER_BOUND - 1,
-                &region_size,
-                MEM_TOP_DOWN | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-            if (status) {
-                fprintf(stderr, "[MQALLOC] BUG! Failed to allocate low-address region. NTSTATUS=0x%lx.\n", status);
-                fflush(stderr);
-                fail(STATUS_INIT_FAILED);
-                return FALSE;
-            }
-
-            if (mem_region >= (PVOID) MEM_REGION_VA_UPPER_BOUND) {
-                fprintf(stderr, "[MQALLOC] BUG! Allocated region is not low-address: %llx\n", (unsigned long long) mem_region);
-                fflush(stderr);
+            if (!alloc_low_address_region()) {
+                err_print("[MQALLOC] Failed to allocate low-address region.\n");
                 fail(STATUS_INIT_FAILED);
                 return FALSE;
             }
@@ -257,17 +321,13 @@ BOOL WINAPI DllMain(
             mutex = CreateMutex(NULL, FALSE, NULL);
 
             if (mutex == NULL) {
-                fprintf(stderr, "[MQALLOC] Failed to create mutex.\n");
-                fflush(stderr);
+                err_print("[MQALLOC] Failed to create mutex.\n");
                 fail(STATUS_INIT_FAILED);
                 return FALSE;
             }
 
-            if (enable_debug) {
-                fprintf(stderr, "[MQALLOC] Allocated low-address region: 0x%llx\n",
-                        (unsigned long long) mem_region);
-                fflush(stderr);
-            }
+            dbg_print("[MQALLOC] Allocated low-address region: 0x%llx\n",
+                (unsigned long long) mem_region);
             break;
 
         case DLL_THREAD_ATTACH:
@@ -277,20 +337,8 @@ BOOL WINAPI DllMain(
             break;
 
         case DLL_PROCESS_DETACH:
-            if (enable_debug) {
-                fprintf(stderr, "[MQALLOC] Detaching from the process\n");
-                fflush(stderr);
-            }
-
-            if (mem_region != NULL) {
-                PVOID base_address = mem_region;
-                SIZE_T freed_region_size = 0;
-                NtFreeVirtualMemory(
-                    GetCurrentProcess(),
-                    &base_address,
-                    &freed_region_size,
-                    MEM_RELEASE);
-            }
+            dbg_print("[MQALLOC] Detaching from the process\n");
+            free_low_address_region();
             break;
     }
 
