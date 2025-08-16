@@ -89,5 +89,7 @@ jobs:
         draft: true
         body: |
           Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive.
+          
+          This build was produced by GitHub Actions Runner with GitHub's [https://github.com/icedevml/zxp-native-usb-adapter-64bit-hack/attestations?q=${{github.ref_name}}](build attestation) available.
         files: |
           build/${{env.BUILD_TYPE}}/Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip
