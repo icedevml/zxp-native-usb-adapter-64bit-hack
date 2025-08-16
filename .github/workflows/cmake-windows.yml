@@ -19,7 +19,7 @@ jobs:
 
     - name: Validate SHA-256 of ZebraNativeUsbAdapter_64
       run: |
-        echo -n "034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e *ZebraNativeUsbAdapter_64.dll\n" | sha256sum -c
+        Write-Host "034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e *ZebraNativeUsbAdapter_64.dll" -nonewline | sha256sum -c
 
     - name: Apply binary patch to ZebraNativeUsbAdapter_64
       run: |
