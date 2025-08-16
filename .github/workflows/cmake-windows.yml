@@ -67,7 +67,7 @@ jobs:
       run: |
         mv ZebraNativeUsbAdapter_64.dll build\${{env.BUILD_TYPE}}\ZebraNativeUsbAdapter_64.dll
         cd build\${{env.BUILD_TYPE}}
-        Compress-Archive -Path "INSTALL.txt,MQALLOC.dll,ZebraNativeUsbAdapter_64.dll" -DestinationPath "Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip"
+        Compress-Archive -Path INSTALL.txt, MQALLOC.dll, ZebraNativeUsbAdapter_64.dll -DestinationPath "Patch_ZebraNativeUsbAdapter_64_${{github.ref_name}}.zip"
 
     - name: Generate artifact attestation
       uses: actions/attest-build-provenance@v2
