@@ -187,7 +187,7 @@ BOOL WINAPI DllMain(
                 fprintf(stderr,
                         "[MQALLOC] Loading ZebraNativeUsbAdapter_64.dll allocator compatibility hack by MQ\n");
                 fprintf(stderr,
-                        "[MQALLOC] Build: 20250816R02\n");
+                        "[MQALLOC] Build: {{BUILD_ID}}\n");
                 fprintf(stderr, ""
                        "                       __________.__        __   __                __ ________  \n"
                        "   /\\_/\\               \\____    /|__|__ ___/  |_|  | _______      / / \\_____  \\ \n"
