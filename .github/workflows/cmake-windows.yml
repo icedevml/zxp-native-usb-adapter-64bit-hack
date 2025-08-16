@@ -1,6 +1,6 @@
-name: CMake on a single platform
+name: CMake Build MQALLOC
 
-on: [push]
+on: [push, pull_request]
 
 env:
   BUILD_TYPE: Release
@@ -11,19 +11,51 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read
+      contents: write
       attestations: write
 
     steps:
     - uses: actions/checkout@v4
 
+    - name: Validate SHA-256 of ZebraNativeUsbAdapter_64
+      run: |
+        echo "034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e *ZebraNativeUsbAdapter_64.dll" | sha256sum -C
+
+    - name: Apply binary patch to ZebraNativeUsbAdapter_64
+      run: |
+        dos2unix ZebraNativeUsbAdapter_64.diff
+        git apply < ZebraNativeUsbAdapter_64.diff
+
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build
 
-    - name: Build
+    - name: Build MQALLOC.dll
       run: cmake --build ${{github.workspace}}/build --target MQALLOC --config ${{env.BUILD_TYPE}}
 
     - name: Generate artifact attestation
       uses: actions/attest-build-provenance@v2
+      if: github.event == 'push'
       with:
         subject-path: 'build\Release\MQALLOC.dll'
+
+    - name: Package ZIP release
+      run: |
+        cd build\Release
+        Compress-Archive -Path MQALLOC.dll,ZebraNativeUsbAdapter_64.dll -DestinationPath Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip
+
+    - name: Generate artifact attestation
+      uses: actions/attest-build-provenance@v2
+      if: github.event == 'push' # && github.ref_type == 'tag'
+      with:
+        subject-path: 'build\Release\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip'
+
+    - name: Create releases
+      uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+      if: github.event == 'push' # && github.ref_type == 'tag'
+      with:
+        name: "Patch for ZebraNativeUsbAdapter_64.dll (version: ${GITHUB_REF_NAME})"
+        draft: true
+        body: |
+          Replace the original `ZebraNativeUsbAdapter_64.dll` with the two DLLs contained in this ZIP archive.
+        files: |
+          build\Release\Patch_ZebraNativeUsbAdapter_64_${GITHUB_REF_NAME}.zip
