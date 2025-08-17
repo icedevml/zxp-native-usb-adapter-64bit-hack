@@ -50,14 +50,14 @@ Build provenance is available in [Actions / Attestation](https://github.com/iced
 
 Whenever Java SDK asks to open the connection with the printer, the original DLL would allocate
 a heap object representing the printer connection and return a pointer back to Java SDK. However, there is
-an implementation bug that would cause the DLL to cast the pointer to `uint32_t` before returning it.
+an implementation bug that would cause the DLL to cast the pointer to `int32_t` before returning it.
 Similarly, the other DLL functions that allow subsequent interaction with the printer would also shrink
 the pointer after receiving it as the argument.
 
 The patch features a special proxy DLL called `MQALLOC.dll` that hooks and re-implements the C++ dynamic
 allocator (`operator new` and `operator delete`). The additional DLL will ensure that heap objects are always
-allocated on low virtual addresses (pointer values significantly below 2^32). Thus, the pointer values will
-not get damaged, even if they would be inappropriately casted to `uint32_t` anywhere.
+allocated on low virtual addresses (pointer values <= 2^31). Thus, the pointer values will
+not get damaged, even if they would be inappropriately cast to `int32_t` anywhere.
 
 The implementation of the allocator is extremely rudimental but sufficient for this particular case.
 The entire original DLL would only allocate one type of objects, all with the same and known size.
@@ -84,7 +84,7 @@ will be logged on the standard error stream and the entire JRE will be torn down
 
 Only if you want to build this patch from scratch:
 
-1. Get the original `ZebraNativeUsbAdapter_64.dll` from the SDK (SHA256: `034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e`).
+1. Get the original `ZebraNativeUsbAdapter_64.dll` from [the SDK](https://www.zebra.com/us/en/support-downloads/software/printer-software/card-sdk.html?downloadId=8b36dbcf-976f-444e-b484-36225ea97ad6) (SHA256: `034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e`).
 2. Execute the following command to patch the original DLL (this command doesn't need to be run inside git repository):
    ```
    # ensure that the diff file doesn't have CRLF
