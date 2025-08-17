@@ -84,7 +84,7 @@ will be logged on the standard error stream and the entire JRE will be torn down
 
 Only if you want to build this patch from scratch:
 
-1. Get the original `ZebraNativeUsbAdapter_64.dll` from [the SDK](https://www.zebra.com/us/en/support-downloads/software/printer-software/card-sdk.html?downloadId=8b36dbcf-976f-444e-b484-36225ea97ad6) (SHA256: `034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e`).
+1. Get the original `ZebraNativeUsbAdapter_64.dll` from [the SDK](https://www.zebra.com/gb/en/support-downloads/software/printer-software/card-sdk.html?downloadId=8b36dbcf-976f-444e-b484-36225ea97ad6) (SHA256: `034bd1293128507120005ebb6a5ba510b614932292e648e15a77677c09c63f1e`).
 2. Execute the following command to patch the original DLL (this command doesn't need to be run inside git repository):
    ```
    # ensure that the diff file doesn't have CRLF
