@@ -44,6 +44,10 @@ Kindly please star the project on GitHub to indicate that this patch works corre
 Release builds are built automatically by GitHub Actions Runner (hosted by GitHub).
 Build provenance is available in [Actions / Attestation](https://github.com/icedevml/zxp-native-usb-adapter-64bit-hack/attestations).
 
+## Test results 
+
+* :white_check_mark: Windows 11 Pro 24H2 26100.4946
+
 ---
 
 ## Technical details
