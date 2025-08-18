@@ -46,13 +46,15 @@ Build provenance is available in [Actions / Attestation](https://github.com/iced
 
 ## Test results 
 
-| Result             | Patch version       | Java version                                      | OS version                                                           |
-|--------------------|---------------------|---------------------------------------------------|----------------------------------------------------------------------|
-| :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows 11 Pro 24H2 26100.4946 x64                                   |
-| :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows Server 2025 24H2 (OS Build 26100.3194) (Desktop Experience)  |
-| :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows 10 Home 22H2 19045.3803 x64                                  |
-| :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows Server 2022 21H2 (OS Build 20348.587) (Desktop Experience)   |
-| :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows 7 Version 6.1 (Build: 7601 Service Pack 1) x64               |
+| Result             | Patch version       | Java version                                                         | OS version                                                           |
+|--------------------|---------------------|----------------------------------------------------------------------|----------------------------------------------------------------------|
+| :white_check_mark: | build-20250817R04   | Java 21 [OpenJDK 64-Bit Server VM Zulu21.42+19-CA]                   | Windows 11 Pro 24H2 26100.4946 x64                                   |
+| :white_check_mark: | build-20250817R04   | Tomcat 10.1.44 / Java 21 [OpenJDK 64-Bit Server VM Zulu21.42+19-CA]  | Windows 11 Pro 24H2 26100.4946 x64                                   |
+| :white_check_mark: | build-20250817R04   | Java 1.8 [OpenJDK 64-Bit Server VM Zulu 8.88.0.19-CA-win64]          | Windows 11 Pro 24H2 26100.4946 x64                                   |
+| :white_check_mark: | build-20250817R04   | Java 21 [OpenJDK 64-Bit Server VM Zulu21.42+19-CA]                   | Windows Server 2025 24H2 (OS Build 26100.3194) (Desktop Experience)  |
+| :white_check_mark: | build-20250817R04   | Java 21 [OpenJDK 64-Bit Server VM Zulu21.42+19-CA]                   | Windows 10 Home 22H2 19045.3803 x64                                  |
+| :white_check_mark: | build-20250817R04   | Java 21 [OpenJDK 64-Bit Server VM Zulu21.42+19-CA]                   | Windows Server 2022 21H2 (OS Build 20348.587) (Desktop Experience)   |
+| :white_check_mark: | build-20250817R04   | Java 21 [OpenJDK 64-Bit Server VM Zulu21.42+19-CA]                   | Windows 7 Version 6.1 (Build: 7601 Service Pack 1) x64               |
 
 ---
 
