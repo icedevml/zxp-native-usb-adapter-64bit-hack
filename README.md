@@ -50,7 +50,7 @@ Build provenance is available in [Actions / Attestation](https://github.com/iced
 |--------------------|---------------------|---------------------------------------------------|-------------------------------------------------------------------|
 | :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows 11 Pro 24H2 26100.4946 x64                                |
 | :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows 10 Home 22H2 19045.3803 x64                               |
-|                    | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows 7 x64                                                     |
+| :white_check_mark: | build-20250817R04   | OpenJDK 64-Bit Server VM Zulu21.42+19-CA          | Windows 7 Version 6.1 (Build: 7601 Service Pack 1) x64            |
 
 ---
 
